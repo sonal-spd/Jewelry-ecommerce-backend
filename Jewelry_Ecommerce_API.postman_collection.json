@@ -1,0 +1,971 @@
+{
+	"info": {
+		"_postman_id": "jewelry-ecommerce-api",
+		"name": "Jewelry E-commerce API",
+		"description": "Complete API collection for jewelry e-commerce backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"john_doe\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login", ""]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', response.access);",
+									"    pm.collectionVariables.set('refresh_token', response.refresh);",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Register",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"loginname\": \"new_user\",\n    \"first_name\": \"New\",\n    \"last_name\": \"User\",\n    \"email\": \"new.user@example.com\",\n    \"password\": \"securepassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register", ""]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/logout/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout", ""]
+						}
+					}
+				},
+				{
+					"name": "Verify Email",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/verify-email/?uid=1&token=abc123",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "verify-email", ""],
+							"query": [
+								{
+									"key": "uid",
+									"value": "1"
+								},
+								{
+									"key": "token",
+									"value": "abc123"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Get Users",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/users/?page=1&page_size=20",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "users", ""],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/users/1/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "users", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/profile/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile", ""]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone\": \"555-123-4567\",\n    \"date_of_birth\": \"1990-01-01\",\n    \"gender\": \"male\",\n    \"bio\": \"Updated bio\",\n    \"newsletter_subscription\": true,\n    \"email_notifications\": true,\n    \"instagram\": \"@john_jewels\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/profile/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Extended Profile",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/profile/extended/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile", "extended", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Addresses",
+			"item": [
+				{
+					"name": "Get Addresses",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/addresses/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "addresses", ""]
+						}
+					}
+				},
+				{
+					"name": "Create Address",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"address_type\": \"work\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"company\": \"Tech Corp\",\n    \"address_line_1\": \"456 Business Ave\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postal_code\": \"10002\",\n    \"country\": \"USA\",\n    \"phone\": \"555-987-6543\",\n    \"is_default\": false,\n    \"is_shipping\": true,\n    \"is_billing\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/addresses/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "addresses", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Address Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/addresses/1/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "addresses", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Update Address",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"address_type\": \"home\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"address_line_1\": \"789 Updated St\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postal_code\": \"10003\",\n    \"country\": \"USA\",\n    \"phone\": \"555-111-2222\",\n    \"is_default\": true,\n    \"is_shipping\": true,\n    \"is_billing\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/addresses/1/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "addresses", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Delete Address",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/auth/addresses/1/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "addresses", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get Categories",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/categories/?search=rings",
+							"host": ["{{base_url}}"],
+							"path": ["categories", ""],
+							"query": [
+								{
+									"key": "search",
+									"value": "rings"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New Category\",\n    \"description\": \"Category description\",\n    \"parent\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/categories/",
+							"host": ["{{base_url}}"],
+							"path": ["categories", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Category Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/categories/rings/",
+							"host": ["{{base_url}}"],
+							"path": ["categories", "rings", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Products",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products/?category=rings&min_price=100&max_price=500&page=1&page_size=10",
+							"host": ["{{base_url}}"],
+							"path": ["products", ""],
+							"query": [
+								{
+									"key": "category",
+									"value": "rings"
+								},
+								{
+									"key": "min_price",
+									"value": "100"
+								},
+								{
+									"key": "max_price",
+									"value": "500"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"New Product\",\n    \"description\": \"Product description\",\n    \"price\": \"199.99\",\n    \"cost_price\": \"100.00\",\n    \"markup_percentage\": \"99.99\",\n    \"stock_quantity\": 25,\n    \"is_featured\": false,\n    \"jewelry_type\": \"ring\",\n    \"weight\": \"2.5\",\n    \"dimensions\": \"1cm diameter\",\n    \"is_customizable\": true,\n    \"customization_options\": {\n        \"size\": [\"4-10\"],\n        \"metal\": [\"gold\", \"silver\"]\n    },\n    \"care_instructions\": \"Handle with care\",\n    \"category\": 1,\n    \"primary_material\": 1,\n    \"secondary_materials\": [2, 3]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/products/create/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "create", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Product Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Featured Products",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products/featured/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "featured", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Related Products",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/related/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "related", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Materials",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/materials/",
+							"host": ["{{base_url}}"],
+							"path": ["materials", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Gemstones",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/gemstones/",
+							"host": ["{{base_url}}"],
+							"path": ["gemstones", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Products by Category",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/get-products/?category=bride-groom-collection&count=4",
+							"host": ["{{base_url}}"],
+							"path": ["get-products", ""],
+							"query": [
+								{
+									"key": "category",
+									"value": "bride-groom-collection"
+								},
+								{
+									"key": "count",
+									"value": "4"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Products by Category (8 items)",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/get-products/?category=rings&count=8",
+							"host": ["{{base_url}}"],
+							"path": ["get-products", ""],
+							"query": [
+								{
+									"key": "category",
+									"value": "rings"
+								},
+								{
+									"key": "count",
+									"value": "8"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product Images",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/images/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "images", ""]
+						}
+					}
+				},
+				{
+					"name": "Upload Product Image",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "alt_text",
+									"value": "Product image description",
+									"type": "text"
+								},
+								{
+									"key": "is_main",
+									"value": "false",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/images/upload/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "images", "upload", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Product Image Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/images/1/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "images", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Update Product Image",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"alt_text\": \"Updated alt text\",\n    \"is_main\": false,\n    \"order\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/images/1/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "images", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Delete Product Image",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/images/1/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "images", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Set Main Product Image",
+					"request": {
+						"method": "POST",
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/images/1/set-main/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "images", "1", "set-main", ""]
+						}
+					}
+				},
+				{
+					"name": "Reorder Product Images",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image_orders\": [\n        {\n            \"image_id\": 1,\n            \"order\": 2\n        },\n        {\n            \"image_id\": 2,\n            \"order\": 1\n        },\n        {\n            \"image_id\": 3,\n            \"order\": 3\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/images/reorder/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "images", "reorder", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Reviews",
+			"item": [
+				{
+					"name": "Get Product Reviews",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/reviews/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "reviews", ""]
+						}
+					}
+				},
+				{
+					"name": "Create Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"rating\": 5,\n    \"comment\": \"Excellent product!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/products/classic-gold-wedding-ring/reviews/",
+							"host": ["{{base_url}}"],
+							"path": ["products", "classic-gold-wedding-ring", "reviews", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Review Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/reviews/1/",
+							"host": ["{{base_url}}"],
+							"path": ["reviews", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Shopping Cart",
+			"item": [
+				{
+					"name": "Get Cart",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/cart/",
+							"host": ["{{base_url}}"],
+							"path": ["cart", ""]
+						}
+					}
+				},
+				{
+					"name": "Add to Cart",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product\": 1,\n    \"quantity\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/cart/",
+							"host": ["{{base_url}}"],
+							"path": ["cart", ""]
+						}
+					}
+				},
+				{
+					"name": "Update Cart Item",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"quantity\": 3\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/cart/1/",
+							"host": ["{{base_url}}"],
+							"path": ["cart", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Remove Cart Item",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/cart/1/",
+							"host": ["{{base_url}}"],
+							"path": ["cart", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Wishlist",
+			"item": [
+				{
+					"name": "Get Wishlist",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/wishlist/",
+							"host": ["{{base_url}}"],
+							"path": ["wishlist", ""]
+						}
+					}
+				},
+				{
+					"name": "Add to Wishlist",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product\": 3\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/wishlist/",
+							"host": ["{{base_url}}"],
+							"path": ["wishlist", ""]
+						}
+					}
+				},
+				{
+					"name": "Remove from Wishlist",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/wishlist/1/",
+							"host": ["{{base_url}}"],
+							"path": ["wishlist", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Search",
+			"item": [
+				{
+					"name": "Product Search",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/search/?q=gold ring&category=rings&min_price=100&max_price=500",
+							"host": ["{{base_url}}"],
+							"path": ["search", ""],
+							"query": [
+								{
+									"key": "q",
+									"value": "gold ring"
+								},
+								{
+									"key": "category",
+									"value": "rings"
+								},
+								{
+									"key": "min_price",
+									"value": "100"
+								},
+								{
+									"key": "max_price",
+									"value": "500"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Get Orders",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/orders/?status=delivered&page=1&page_size=10",
+							"host": ["{{base_url}}"],
+							"path": ["orders", ""],
+							"query": [
+								{
+									"key": "status",
+									"value": "delivered"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"shipping_address\": {\n        \"first_name\": \"John\",\n        \"last_name\": \"Doe\",\n        \"address_line_1\": \"123 Main St\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"postal_code\": \"10001\",\n        \"country\": \"USA\",\n        \"phone\": \"555-123-4567\"\n    },\n    \"billing_address\": {\n        \"first_name\": \"John\",\n        \"last_name\": \"Doe\",\n        \"address_line_1\": \"123 Main St\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"postal_code\": \"10001\",\n        \"country\": \"USA\",\n        \"phone\": \"555-123-4567\"\n    },\n    \"notes\": \"Please handle with care\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/orders/create/",
+							"host": ["{{base_url}}"],
+							"path": ["orders", "create", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Order Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/orders/1/",
+							"host": ["{{base_url}}"],
+							"path": ["orders", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Get Payments",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/payments/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Payment Detail",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/payments/1/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Coupons",
+			"item": [
+				{
+					"name": "Get Coupons",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/coupons/",
+							"host": ["{{base_url}}"],
+							"path": ["coupons", ""]
+						}
+					}
+				},
+				{
+					"name": "Validate Coupon",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"SAVE10\",\n    \"order_amount\": \"100.00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/coupons/validate/",
+							"host": ["{{base_url}}"],
+							"path": ["coupons", "validate", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Coupon Usage",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/coupons/usage/",
+							"host": ["{{base_url}}"],
+							"path": ["coupons", "usage", ""]
+						}
+					}
+				}
+			]
+		}
+	]
+}
