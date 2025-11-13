@@ -26,13 +26,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config("ALLOWED_HOSTS").split(",")
 CORS_ORIGIN_ALLOW_ALL =False
 
 
-CORS_ALLOWED_ORIGINS = ['http://localhost','http://localhost:8000','http://localhost:3000','http://127.0.0.1:8000','http://localhost:5173']
+CORS_ALLOWED_ORIGINS = ['http://localhost','http://localhost:8000','http://localhost:3000','http://127.0.0.1:8000','http://localhost:5173','https://jewelry-ecommerce-backend.onrender.com']
 
 CORS_ALLOW_METHODS = [
     "GET",
