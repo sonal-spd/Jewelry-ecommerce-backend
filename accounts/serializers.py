@@ -44,9 +44,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserListSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(source='profile.phone')
+    
     class Meta:
         model = User
-        fields = ['id', 'loginname', 'email', 'first_name', 'last_name', 'status']
+        fields = ['id', 'loginname', 'email', 'first_name', 'last_name', 'status','created_at','last_login','phone']
 
 
 # Address serializers

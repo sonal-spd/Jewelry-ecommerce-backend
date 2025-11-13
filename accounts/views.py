@@ -6,9 +6,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from utils.token import email_token_generator
+from utils.pagination import StandardResultsSetPagination
 from .serializers import RegisterSerializer, UserSerializer, UserListSerializer, UserProfileSerializer, CompleteUserProfileSerializer, ExtendedUserProfileSerializer, AddressSerializer
 from .models import Address, UserProfile
-from utils.pagination import Pagination
 
 User = get_user_model()
 
@@ -92,7 +92,9 @@ class EmailVerifyAPIView(APIView):
 
 
 class UserListAPIView(APIView):
-    def get(self, request,pk=None):
+    pagination_class = StandardResultsSetPagination
+    
+    def get(self, request, pk=None):
         if pk:
             try:
                 user = User.objects.get(pk=pk)
@@ -103,16 +105,20 @@ class UserListAPIView(APIView):
         else:
             filters = dict(request.GET.items())
             users = User.objects.exclude(status=3) 
-            page = filters.pop('page', None)
+            page_param = filters.pop('page', None)  # Remove page from filters to avoid filtering by page
             if filters:
                 users = users.filter(**filters)
-            if page:
-                paginator = Pagination()
-                paginated_data = paginator.paginate_queryset(users, request)
-                serialized_data = UserListSerializer(paginated_data, many=True)
-                return paginator.get_paginated_response({"status": 200, "data": serialized_data.data})
+            
+            # Pagination - only if page parameter is provided
+            if page_param is not None:
+                paginator = self.pagination_class()
+                page = paginator.paginate_queryset(users, request)
+                if page is not None:
+                    serializer = UserListSerializer(page, many=True)
+                    return paginator.get_paginated_response(serializer.data)
+            
             serializer = UserListSerializer(users, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({"status": 200, "data": serializer.data}, status=status.HTTP_200_OK)
 
 
 # User Profile Views

@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import dj_database_url
+from decouple import config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-_v3p=92qh21^e=!5xkww+e$r*6m=-68%4qmhsoi0vij$b@xznl'
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -29,7 +32,7 @@ ALLOWED_HOSTS = ["*"]
 CORS_ORIGIN_ALLOW_ALL =False
 
 
-CORS_ALLOWED_ORIGINS = ['http://localhost','http://localhost:8000','http://localhost:3000','http://127.0.0.1:8000']
+CORS_ALLOWED_ORIGINS = ['http://localhost','http://localhost:8000','http://localhost:3000','http://127.0.0.1:8000','http://localhost:5173']
 
 CORS_ALLOW_METHODS = [
     "GET",
@@ -138,6 +141,8 @@ DATABASES = {
     }
 }
 
+
+DATABASES['default'] = dj_database_url.parse(config('DATABASE_URL'))
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
