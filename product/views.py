@@ -5,15 +5,16 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, Avg, Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.text import slugify
 from decimal import Decimal
 from django.core.files.storage import default_storage
-
+from Luli.utils import format_errors
 from .models import (
     Category, Product, ProductImage, Review, Material, Gemstone,
     Cart, CartItem, Wishlist, WishlistItem
 )
 from .serializers import (
-    CategorySerializer, ProductSerializer, ProductListSerializer,
+    CategorySerializer, ProductDetailSerializer,ProductCreateSerializer, ProductListSerializer,
     ProductImageSerializer, ReviewSerializer, MaterialSerializer, GemstoneSerializer,
     CartSerializer, CartItemSerializer, WishlistSerializer, WishlistItemSerializer,
     ProductSearchSerializer
@@ -58,7 +59,10 @@ class CategoryListView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CategoryDetailView(APIView):
@@ -79,7 +83,10 @@ class CategoryDetailView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            formatted = format_errors(serializer.errors)
+            errors_list = formatted.get('errors', [])
+            error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+            return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
         except Category.DoesNotExist:
             return Response({'error': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -179,7 +186,7 @@ class ProductDetailView(APIView):
             product = Product.objects.select_related('category', 'primary_material').prefetch_related(
                 'images', 'reviews', 'secondary_materials', 'gemstones__gemstone'
             ).get(slug=slug)
-            serializer = ProductSerializer(product)
+            serializer = ProductDetailSerializer(product)
             return Response(serializer.data)
         except Product.DoesNotExist:
             return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -189,11 +196,14 @@ class ProductCreateView(APIView):
     permission_classes = [permissions.IsAdminUser]
     
     def post(self, request):
-        serializer = ProductSerializer(data=request.data)
+        serializer = ProductCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProductUpdateView(APIView):
@@ -202,26 +212,18 @@ class ProductUpdateView(APIView):
     def put(self, request, slug):
         try:
             product = Product.objects.get(slug=slug)
-            serializer = ProductSerializer(product, data=request.data, partial=True)
+            serializer = ProductCreateSerializer(product, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            formatted = format_errors(serializer.errors)
+            errors_list = formatted.get('errors', [])
+            error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+            return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
         except Product.DoesNotExist:
             return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
     
-    def patch(self, request, slug):
-        try:
-            product = Product.objects.get(slug=slug)
-            serializer = ProductSerializer(product, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Product.DoesNotExist:
-            return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
+   
 class ProductDeleteView(APIView):
     permission_classes = [permissions.IsAdminUser]
     
@@ -263,11 +265,14 @@ class ReviewListView(APIView):
     def post(self, request, product_slug):
         try:
             product = Product.objects.get(slug=product_slug)
-            serializer = ReviewSerializer(data=request.data)
+            serializer = ReviewSerializer(data=request.data, context={'user': request.user, 'product': product})
             if serializer.is_valid():
                 serializer.save(user=request.user, product=product)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            formatted = format_errors(serializer.errors)
+            errors_list = formatted.get('errors', [])
+            error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+            return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
         except Product.DoesNotExist:
             return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -290,7 +295,10 @@ class ReviewDetailView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            formatted = format_errors(serializer.errors)
+            errors_list = formatted.get('errors', [])
+            error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+            return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
         except Review.DoesNotExist:
             return Response({'error': 'Review not found'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -334,7 +342,10 @@ class MaterialListView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GemstoneListView(APIView):
@@ -374,7 +385,10 @@ class GemstoneListView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Cart Views
@@ -491,7 +505,10 @@ class ProductSearchView(APIView):
     def post(self, request):
         serializer = ProductSearchSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
         
         data = serializer.validated_data
         queryset = Product.objects.select_related('category', 'primary_material').prefetch_related('images', 'reviews')
@@ -758,7 +775,10 @@ class ProductImageDetailView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            formatted = format_errors(serializer.errors)
+            errors_list = formatted.get('errors', [])
+            error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+            return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
         except Product.DoesNotExist:
             return Response({'error': 'Product or image not found'}, status=status.HTTP_404_NOT_FOUND)
     

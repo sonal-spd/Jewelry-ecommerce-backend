@@ -20,4 +20,9 @@ urlpatterns = [
     # Addresses
     path('addresses/', AddressListView.as_view(), name='address-list'),
     path('addresses/<int:pk>/', AddressDetailView.as_view(), name='address-detail'),
+    
+    # Appointments
+    path('appointments/', AppointmentListView.as_view(), name='appointment-list'),
+    path('appointments/<int:pk>/', AppointmentDetailView.as_view(), name='appointment-detail'),
+    path('appointments/<int:pk>/status/', AppointmentStatusUpdateView.as_view(), name='appointment-status-update'),
 ]

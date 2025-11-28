@@ -7,8 +7,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from utils.token import email_token_generator
 from utils.pagination import StandardResultsSetPagination
-from .serializers import RegisterSerializer, UserSerializer, UserListSerializer, UserProfileSerializer, CompleteUserProfileSerializer, ExtendedUserProfileSerializer, AddressSerializer
-from .models import Address, UserProfile
+from Luli.utils import format_errors
+from .serializers import RegisterSerializer, UserSerializer, UserListSerializer, UserProfileSerializer, CompleteUserProfileSerializer, ExtendedUserProfileSerializer, AddressSerializer, AppointmentSerializer, AppointmentCreateSerializer
+from .models import Address, UserProfile, Appointment
 
 User = get_user_model()
 
@@ -70,7 +71,10 @@ class RegisterAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({"detail": "User created. Check your email to verify."}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 class EmailVerifyAPIView(APIView):
     permission_classes = [AllowAny]
@@ -134,7 +138,10 @@ class UserProfileView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Extended User Profile Views
@@ -152,7 +159,10 @@ class ExtendedUserProfileView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
     
     def post(self, request):
         profile, created = UserProfile.objects.get_or_create(user=request.user)
@@ -160,7 +170,10 @@ class ExtendedUserProfileView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Address Views
@@ -201,7 +214,10 @@ class AddressListView(APIView):
         if serializer.is_valid():
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AddressDetailView(APIView):
@@ -222,7 +238,10 @@ class AddressDetailView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            formatted = format_errors(serializer.errors)
+            errors_list = formatted.get('errors', [])
+            error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+            return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
         except Address.DoesNotExist:
             return Response({'error': 'Address not found'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -233,5 +252,186 @@ class AddressDetailView(APIView):
             return Response({'message': 'Address deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
         except Address.DoesNotExist:
             return Response({'error': 'Address not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# Appointment Views
+class AppointmentListView(APIView):
+    permission_classes = [AllowAny]  # Allow both authenticated and non-authenticated users
+    
+    def get(self, request):
+        """List all appointments (filtered by user if authenticated)"""
+        if request.user.is_authenticated:
+            appointments = Appointment.objects.filter(user=request.user)
+        else:
+            # For non-authenticated users, require email filter
+            email = request.query_params.get('email')
+            if not email:
+                return Response(
+                    {'message': 'Email parameter is required for non-authenticated users'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            appointments = Appointment.objects.filter(email=email)
+        
+        # Filter by status if provided
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            appointments = appointments.filter(status=status_filter)
+        
+        # Order by appointment date
+        appointments = appointments.order_by('-appointment_date', '-created_at')
+        
+        serializer = AppointmentSerializer(appointments, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    def post(self, request):
+        """Create a new appointment"""
+        serializer = AppointmentCreateSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            # If user is authenticated, link the appointment to the user
+            appointment = serializer.save()
+            if request.user.is_authenticated:
+                appointment.user = request.user
+                appointment.save()
+            
+            # Return full appointment details
+            appointment_serializer = AppointmentSerializer(appointment, context={'request': request})
+            return Response(appointment_serializer.data, status=status.HTTP_201_CREATED)
+        
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AppointmentDetailView(APIView):
+    permission_classes = [AllowAny]  # Allow both authenticated and non-authenticated users
+    
+    def get(self, request, pk):
+        """Retrieve a specific appointment"""
+        try:
+            appointment = Appointment.objects.get(pk=pk)
+            
+            # Check permissions
+            if request.user.is_authenticated:
+                if appointment.user != request.user:
+                    return Response(
+                        {'error': 'You do not have permission to view this appointment'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            else:
+                # For non-authenticated users, require email verification
+                email = request.query_params.get('email')
+                if not email or appointment.email != email:
+                    return Response(
+                        {'error': 'Email verification required to view this appointment'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
+            serializer = AppointmentSerializer(appointment, context={'request': request})
+            return Response(serializer.data)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    def put(self, request, pk):
+        """Update an appointment"""
+        try:
+            appointment = Appointment.objects.get(pk=pk)
+            
+            # Check permissions
+            if request.user.is_authenticated:
+                if appointment.user != request.user:
+                    return Response(
+                        {'error': 'You do not have permission to update this appointment'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            else:
+                # For non-authenticated users, require email verification
+                email = request.data.get('email') or request.query_params.get('email')
+                if not email or appointment.email != email:
+                    return Response(
+                        {'error': 'Email verification required to update this appointment'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
+            serializer = AppointmentSerializer(appointment, data=request.data, partial=True, context={'request': request})
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            
+            formatted = format_errors(serializer.errors)
+            errors_list = formatted.get('errors', [])
+            error_message = '; '.join(errors_list) if errors_list else 'Validation error'
+            return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    def delete(self, request, pk):
+        """Cancel/Delete an appointment"""
+        try:
+            appointment = Appointment.objects.get(pk=pk)
+            
+            # Check permissions
+            if request.user.is_authenticated:
+                if appointment.user != request.user:
+                    return Response(
+                        {'error': 'You do not have permission to delete this appointment'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            else:
+                # For non-authenticated users, require email verification
+                email = request.data.get('email') or request.query_params.get('email')
+                if not email or appointment.email != email:
+                    return Response(
+                        {'error': 'Email verification required to delete this appointment'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
+            appointment.delete()
+            return Response({'message': 'Appointment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AppointmentStatusUpdateView(APIView):
+    """View for updating appointment status (admin only)"""
+    permission_classes = [IsAuthenticated]
+    
+    def put(self, request, pk):
+        """Update appointment status"""
+        # Check if user is admin/staff
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'You do not have permission to update appointment status'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            appointment = Appointment.objects.get(pk=pk)
+            new_status = request.data.get('status')
+            
+            if not new_status:
+                return Response(
+                    {'message': 'Status field is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate status choice
+            valid_statuses = [choice[0] for choice in Appointment.STATUS_CHOICES]
+            if new_status not in valid_statuses:
+                return Response(
+                    {'message': f'Invalid status. Valid choices are: {", ".join(valid_statuses)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            appointment.status = new_status
+            notes = request.data.get('notes')
+            if notes:
+                appointment.notes = notes
+            appointment.save()
+            
+            serializer = AppointmentSerializer(appointment, context={'request': request})
+            return Response(serializer.data)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
 
 

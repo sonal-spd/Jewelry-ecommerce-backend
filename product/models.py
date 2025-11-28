@@ -15,7 +15,7 @@ class Category(models.Model):
         null=True,
         blank=True
     )
-    description = models.TextField(blank=True)
+    description = models.TextField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -28,7 +28,7 @@ class Category(models.Model):
 
 class Material(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
+    description = models.TextField(null=True, blank=True)
     is_precious = models.BooleanField(default=False)
     
     def __str__(self):
@@ -37,9 +37,9 @@ class Material(models.Model):
 
 class Gemstone(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    color = models.CharField(max_length=50, blank=True)
+    color = models.CharField(max_length=50, null=True, blank=True)
     hardness = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
-    description = models.TextField(blank=True)
+    description = models.TextField(null=True, blank=True)
     
     def __str__(self):
         return self.name
@@ -51,9 +51,9 @@ class Product(models.Model):
     # Basic Information
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, blank=True)
-    category = models.ForeignKey('Category', on_delete=models.CASCADE)
-    description = models.TextField()
-    studio_notes = models.TextField(blank=True)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    studio_notes = models.TextField(null=True, blank=True)
     
     # Pricing & Inventory
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -61,14 +61,14 @@ class Product(models.Model):
     markup_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     stock_quantity = models.PositiveIntegerField(default=0)
     in_stock = models.BooleanField(default=True)
-    
+    image_links = models.JSONField(default=list, null=True, blank=True)
+    featured_image = models.URLField(null=True, blank=True)
     # Product Status
     is_featured = models.BooleanField(default=False)
     status = models.SmallIntegerField(
         choices=((1, 'Available'), (2, 'Out of Stock'), (3, 'Discontinued')),
         default=1
     )
-    
     # Jewelry-specific fields
     jewelry_type = models.CharField(max_length=50, choices=[
         ('ring', 'Ring'),
@@ -81,11 +81,11 @@ class Product(models.Model):
         ('choker', 'Choker'),
         ('tiara', 'Tiara'),
         ('cufflink', 'Cufflink'),
-    ], blank=True)
+    ], blank=True, null=True)
     
     # Physical properties
     weight = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, help_text="Weight in grams")
-    dimensions = models.CharField(max_length=100, blank=True, help_text="e.g., '2cm x 1.5cm x 0.5cm'")
+    dimensions = models.CharField(max_length=100, null=True, blank=True, help_text="e.g., '2cm x 1.5cm x 0.5cm'")
     
     # Materials and stones
     primary_material = models.ForeignKey(Material, on_delete=models.SET_NULL, null=True, blank=True, related_name='primary_products')
@@ -94,10 +94,10 @@ class Product(models.Model):
     
     # Customization
     is_customizable = models.BooleanField(default=False)
-    customization_options = models.JSONField(default=dict, blank=True)
+    customization_options = models.JSONField(default=dict, null=True, blank=True)
     
     # Care instructions
-    care_instructions = models.TextField(blank=True)
+    care_instructions = models.TextField(null=True, blank=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -124,9 +124,9 @@ class ProductGemstone(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     gemstone = models.ForeignKey(Gemstone, on_delete=models.CASCADE)
     carat_weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
-    cut = models.CharField(max_length=50, blank=True)
-    clarity = models.CharField(max_length=50, blank=True)
-    color_grade = models.CharField(max_length=50, blank=True)
+    cut = models.CharField(max_length=50, null=True, blank=True)
+    clarity = models.CharField(max_length=50, null=True, blank=True)
+    color_grade = models.CharField(max_length=50, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     
     class Meta:
@@ -139,7 +139,7 @@ class ProductGemstone(models.Model):
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='products/')
-    alt_text = models.CharField(max_length=255, blank=True)
+    alt_text = models.CharField(max_length=255, null=True, blank=True)
     is_main = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)  # For ordering images
     
@@ -171,8 +171,8 @@ class Review(models.Model):
 class RecommendedProduct(models.Model):
     """Model for product recommendations"""
     product = models.ForeignKey(Product, related_name='recommendations', on_delete=models.CASCADE)
-    recommended = models.ForeignKey(Product, related_name='recommended_for', on_delete=models.CASCADE)
-    reason = models.CharField(max_length=255, blank=True)  # Why this product is recommended
+    recommended = models.ForeignKey(Product, related_name='recommended_for', on_delete=models.CASCADE, null=True, blank=True)
+    reason = models.CharField(max_length=255, null=True, blank=True)  # Why this product is recommended
     
     class Meta:
         unique_together = ['product', 'recommended']

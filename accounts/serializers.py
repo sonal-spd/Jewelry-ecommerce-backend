@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
 from utils.token import email_token_generator
-from .models import Address, UserProfile
+from .models import Address, UserProfile, Appointment
 
 User = get_user_model()
 
@@ -14,6 +14,18 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['loginname', 'first_name', 'last_name', 'email', 'password']
+    
+    def validate_loginname(self, value):
+        """Validate unique loginname"""
+        if User.objects.filter(loginname=value).exists():
+            raise serializers.ValidationError(f'A user with the loginname "{value}" already exists.')
+        return value
+    
+    def validate_email(self, value):
+        """Validate unique email"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(f'A user with the email "{value}" already exists.')
+        return value
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
@@ -113,3 +125,74 @@ class CompleteUserProfileSerializer(serializers.ModelSerializer):
     
     def get_orders_count(self, obj):
         return obj.orders.count()
+
+
+# Appointment Serializers
+class AppointmentSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    subject_display = serializers.CharField(source='get_subject_display', read_only=True)
+    
+    class Meta:
+        model = Appointment
+        fields = [
+            'id', 'user', 'user_name', 'first_name', 'last_name', 'email', 'phone_number',
+            'subject', 'subject_display', 'message', 'appointment_date', 'duration_minutes',
+            'status', 'status_display', 'notes', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def validate_appointment_date(self, value):
+        """Validate that appointment date is in the future"""
+        from django.utils import timezone
+        if value < timezone.now():
+            raise serializers.ValidationError("Appointment date must be in the future.")
+        return value
+    
+    def validate(self, attrs):
+        """Validate appointment data"""
+        # If user is authenticated, use their info
+        user = self.context.get('request').user if self.context.get('request') else None
+        if user and user.is_authenticated:
+            # Auto-fill user information if not provided
+            if not attrs.get('first_name') and user.first_name:
+                attrs['first_name'] = user.first_name
+            if not attrs.get('last_name') and user.last_name:
+                attrs['last_name'] = user.last_name
+            if not attrs.get('email') and user.email:
+                attrs['email'] = user.email
+        
+        return attrs
+
+
+class AppointmentCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating appointments"""
+    
+    class Meta:
+        model = Appointment
+        fields = [
+            'first_name', 'last_name', 'email', 'phone_number',
+            'subject', 'message', 'appointment_date'
+        ]
+    
+    def validate_appointment_date(self, value):
+        """Validate that appointment date is in the future"""
+        from django.utils import timezone
+        if value < timezone.now():
+            raise serializers.ValidationError("Appointment date must be in the future.")
+        return value
+    
+    def validate(self, attrs):
+        """Validate appointment data"""
+        # If user is authenticated, use their info
+        user = self.context.get('request').user if self.context.get('request') else None
+        if user and user.is_authenticated:
+            # Auto-fill user information if not provided
+            if not attrs.get('first_name') and user.first_name:
+                attrs['first_name'] = user.first_name
+            if not attrs.get('last_name') and user.last_name:
+                attrs['last_name'] = user.last_name
+            if not attrs.get('email') and user.email:
+                attrs['email'] = user.email
+        
+        return attrs

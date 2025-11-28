@@ -85,6 +85,17 @@ class CouponSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['used_count', 'created_at']
     
+    def validate_code(self, value):
+        """Validate unique coupon code"""
+        instance = self.instance
+        queryset = Coupon.objects.filter(code=value)
+        if instance:
+            queryset = queryset.exclude(pk=instance.pk)
+        
+        if queryset.exists():
+            raise serializers.ValidationError(f'A coupon with the code "{value}" already exists.')
+        return value
+    
     def get_is_valid(self, obj):
         return obj.is_valid()
 
@@ -101,3 +112,21 @@ class CouponUsageSerializer(serializers.ModelSerializer):
             'order', 'order_number', 'discount_amount', 'used_at'
         ]
         read_only_fields = ['used_at']
+    
+    def validate(self, attrs):
+        """Validate unique coupon usage per order"""
+        instance = self.instance
+        coupon = attrs.get('coupon') or (instance.coupon if instance else None)
+        order = attrs.get('order') or (instance.order if instance else None)
+        
+        if coupon and order:
+            queryset = CouponUsage.objects.filter(coupon=coupon, order=order)
+            if instance:
+                queryset = queryset.exclude(pk=instance.pk)
+            
+            if queryset.exists():
+                raise serializers.ValidationError({
+                    'non_field_errors': ['This coupon has already been used for this order.']
+                })
+        
+        return attrs

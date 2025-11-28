@@ -42,8 +42,8 @@ class User(AbstractUser):
     # Additional fields
     loginname = models.CharField(max_length=150, unique=True, help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.")
     email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
+    first_name = models.CharField(max_length=30, null=True, blank=True)
+    last_name = models.CharField(max_length=30, null=True, blank=True)
     
     # User status
     STATUS_CHOICES = [
@@ -83,17 +83,17 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     
     # Personal Information
-    phone = models.CharField(max_length=20, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[
         ('male', 'Male'),
         ('female', 'Female'),
         ('other', 'Other'),
-    ], blank=True)
+    ], null=True, blank=True)
     
     # Address Information
-    bio = models.TextField(blank=True)
-    avatar = models.ImageField(upload_to='avatars/', blank=True)
+    bio = models.TextField(null=True, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     
     # Preferences
     newsletter_subscription = models.BooleanField(default=True)
@@ -101,9 +101,9 @@ class UserProfile(models.Model):
     email_notifications = models.BooleanField(default=True)
     
     # Social Media (optional)
-    website = models.URLField(blank=True)
-    instagram = models.CharField(max_length=100, blank=True)
-    facebook = models.CharField(max_length=100, blank=True)
+    website = models.URLField(null=True, blank=True)
+    instagram = models.CharField(max_length=100, null=True, blank=True)
+    facebook = models.CharField(max_length=100, null=True, blank=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -127,14 +127,14 @@ class Address(models.Model):
     # Address fields
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    company = models.CharField(max_length=100, blank=True)
+    company = models.CharField(max_length=100, null=True, blank=True)
     address_line_1 = models.CharField(max_length=255)
-    address_line_2 = models.CharField(max_length=255, blank=True)
-    city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
-    postal_code = models.CharField(max_length=20)
-    country = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20)
+    address_line_2 = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    postal_code = models.CharField(max_length=20, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
     
     # Flags
     is_default = models.BooleanField(default=False)
@@ -152,3 +152,57 @@ class Address(models.Model):
         if self.is_default:
             Address.objects.filter(user=self.user, is_default=True).update(is_default=False)
         super().save(*args, **kwargs)
+
+
+# Appointment Model
+class Appointment(models.Model):
+    """Model for booking appointments"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('cancelled', 'Cancelled'),
+        ('completed', 'Completed'),
+    ]
+    
+    SUBJECT_CHOICES = [
+        ('general_inquiry', 'General Inquiry'),
+        ('product_consultation', 'Product Consultation'),
+        ('custom_design', 'Custom Design'),
+        ('repair_service', 'Repair Service'),
+        ('other', 'Other'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments', null=True, blank=True)
+    
+    # Contact Information (for non-authenticated users)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+    
+    # Appointment Details
+    subject = models.CharField(max_length=50, choices=SUBJECT_CHOICES, default='general_inquiry')
+    message = models.TextField(null=True, blank=True)
+    
+    # Appointment Scheduling
+    appointment_date = models.DateTimeField()
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Additional Information
+    notes = models.TextField(null=True, blank=True, help_text="Internal notes")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-appointment_date', '-created_at']
+    
+    def __str__(self):
+        user_info = f"{self.first_name} {self.last_name}"
+        if self.user:
+            user_info = self.user.get_full_name()
+        return f"Appointment for {user_info} on {self.appointment_date.strftime('%Y-%m-%d %H:%M')}"
