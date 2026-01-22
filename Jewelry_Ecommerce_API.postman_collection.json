@@ -904,7 +904,8 @@
 							"host": ["{{base_url}}"],
 							"path": ["payments", ""]
 						}
-					}
+					},
+					"description": "Get list of all payments for the authenticated user. Use this to view payment history."
 				},
 				{
 					"name": "Get Payment Detail",
@@ -915,7 +916,141 @@
 							"host": ["{{base_url}}"],
 							"path": ["payments", "1", ""]
 						}
-					}
+					},
+					"description": "Get detailed information about a specific payment. Use this to check payment status and details."
+				},
+				{
+					"name": "Get Stripe Config",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/payments/stripe-config/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "stripe-config", ""]
+						}
+					},
+					"description": "WHEN TO CALL: Before initializing Stripe on the frontend. This returns the Stripe publishable key needed to initialize Stripe.js. Call this once when your payment page loads. No authentication required."
+				},
+				{
+					"name": "Create Payment Intent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"order_id\": 1,\n    \"coupon_code\": \"SAVE10\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/create-intent/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "create-intent", ""]
+						}
+					},
+					"description": "WHEN TO CALL: After creating an order and before showing the payment form. This creates a Stripe Payment Intent and returns a client_secret. Use this client_secret with Stripe.js to confirm the payment on the frontend. Optional: Include coupon_code to apply a discount. This automatically creates a Payment record and applies coupon if valid."
+				},
+				{
+					"name": "Confirm Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_intent_id\": \"pi_xxx\",\n    \"order_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/confirm/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "confirm", ""]
+						}
+					},
+					"description": "WHEN TO CALL: After successfully confirming payment on the frontend using Stripe.js. After stripe.confirmCardPayment() succeeds, call this endpoint to update the payment and order status on the backend. This verifies the payment status with Stripe and updates your database accordingly."
+				},
+				{
+					"name": "Create Checkout Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"order_id\": 1,\n    \"coupon_code\": \"SAVE10\",\n    \"success_url\": \"https://yoursite.com/payment-success\",\n    \"cancel_url\": \"https://yoursite.com/payment-cancelled\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/create-checkout-session/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "create-checkout-session", ""]
+						}
+					},
+					"description": "WHEN TO CALL: After creating an order. This creates a Stripe Checkout Session and returns a checkout_url. Redirect the user to this URL to show Stripe's payment page. This is the SIMPLEST payment method - no frontend integration needed! Stripe handles everything. Optional: Include coupon_code to apply discount. Automatically creates Payment record and applies coupon if valid."
+				},
+				{
+					"name": "Verify Checkout Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"session_id\": \"cs_test_xxx\",\n    \"order_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/verify-checkout/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "verify-checkout", ""]
+						}
+					},
+					"description": "WHEN TO CALL: After user returns from Stripe's payment page (on your success page). Get session_id from URL parameter (?session_id=xxx). This verifies the payment status with Stripe and updates your database. Call this on your payment-success page after redirect."
+				},
+				{
+					"name": "Stripe Webhook",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Stripe-Signature",
+								"value": "t=xxx,v1=xxx",
+								"description": "Stripe webhook signature (automatically added by Stripe)"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"checkout.session.completed\",\n    \"data\": {\n        \"object\": {\n            \"id\": \"cs_test_xxx\",\n            \"payment_status\": \"paid\",\n            \"metadata\": {\n                \"order_id\": \"1\"\n            }\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/webhook/",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "webhook", ""]
+						}
+					},
+					"description": "WHEN TO CALL: This is called automatically by Stripe, not by your application. Configure this URL in your Stripe Dashboard under Webhooks. Stripe will send events here when payment status changes. Events: checkout.session.completed (for Checkout Sessions), payment_intent.succeeded, payment_intent.payment_failed (for Payment Intents). No authentication required - uses Stripe signature verification."
 				}
 			]
 		},

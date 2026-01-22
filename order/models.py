@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from product.models import Product
+from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -44,6 +46,7 @@ class Order(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    payment_expires_at = models.DateTimeField(null=True, blank=True, help_text="Order expires if payment not completed by this time")
     shipped_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     
@@ -59,6 +62,53 @@ class Order(models.Model):
             import uuid
             self.order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if order payment has expired"""
+        if not self.payment_expires_at:
+            return False
+        from django.utils import timezone
+        return timezone.now() > self.payment_expires_at
+    
+    def release_reservations(self):
+        """Release reserved stock back to available inventory"""
+        # Only release if order was pending/failed and not already confirmed/paid
+        # This prevents double-release and ensures we only release for pending orders
+        if self.payment_status in ['pending', 'failed'] and self.status in ['pending', 'cancelled']:
+            for item in self.items.all():
+                product = item.product
+                # Only release if there are actually reservations (safety check)
+                # Use atomic operation to prevent race conditions
+                Product.objects.filter(
+                    id=product.id,
+                    reserved_quantity__gte=item.quantity
+                ).update(
+                    reserved_quantity=models.F('reserved_quantity') - item.quantity
+                )
+                # Refresh and update product status
+                product.refresh_from_db()
+                product.save()  # This will update in_stock
+    
+    def confirm_reservations(self):
+        """Convert reserved stock to permanent deduction (on payment success)"""
+        # Only confirm if payment is paid and order was previously pending
+        # This prevents double-confirmation and ensures we only confirm once
+        if self.payment_status == 'paid' and self.status in ['pending', 'confirmed']:
+            for item in self.items.all():
+                product = item.product
+                # Only confirm if there are actually reservations (safety check)
+                # Use atomic operation to prevent race conditions
+                updated = Product.objects.filter(
+                    id=product.id,
+                    reserved_quantity__gte=item.quantity
+                ).update(
+                    stock_quantity=models.F('stock_quantity') - item.quantity,
+                    reserved_quantity=models.F('reserved_quantity') - item.quantity
+                )
+                # Only refresh and save if update was successful
+                if updated > 0:
+                    product.refresh_from_db()
+                    product.save()  # This will update in_stock
 
 
 class OrderItem(models.Model):

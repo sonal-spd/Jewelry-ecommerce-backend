@@ -51,6 +51,7 @@ class Product(models.Model):
     # Basic Information
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, blank=True)
+    product_code = models.CharField(max_length=50, null=True, blank=True, unique=True)
     category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     studio_notes = models.TextField(null=True, blank=True)
@@ -60,6 +61,7 @@ class Product(models.Model):
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     markup_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     stock_quantity = models.PositiveIntegerField(default=0)
+    reserved_quantity = models.PositiveIntegerField(default=0, help_text="Quantity reserved for pending orders")
     in_stock = models.BooleanField(default=True)
     image_links = models.JSONField(default=list, null=True, blank=True)
     featured_image = models.URLField(null=True, blank=True)
@@ -69,20 +71,6 @@ class Product(models.Model):
         choices=((1, 'Available'), (2, 'Out of Stock'), (3, 'Discontinued')),
         default=1
     )
-    # Jewelry-specific fields
-    jewelry_type = models.CharField(max_length=50, choices=[
-        ('ring', 'Ring'),
-        ('necklace', 'Necklace'),
-        ('bracelet', 'Bracelet'),
-        ('earring', 'Earring'),
-        ('pendant', 'Pendant'),
-        ('brooch', 'Brooch'),
-        ('anklet', 'Anklet'),
-        ('choker', 'Choker'),
-        ('tiara', 'Tiara'),
-        ('cufflink', 'Cufflink'),
-    ], blank=True, null=True)
-    
     # Physical properties
     weight = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, help_text="Weight in grams")
     dimensions = models.CharField(max_length=100, null=True, blank=True, help_text="e.g., '2cm x 1.5cm x 0.5cm'")
@@ -106,16 +94,23 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         # Automatically set slug from title if not provided
         if not self.slug:
-            self.slug = slugify(self.title)
+            slug_base = self.title
+            if self.product_code:
+                slug_base = f"{self.title}-{self.product_code}"
+            self.slug = slugify(slug_base)[:50]
 
-        # Update in_stock based on stock_quantity
-        self.in_stock = self.stock_quantity > 0
+        # Update in_stock based on available quantity (stock_quantity - reserved_quantity)
+        available_quantity = self.stock_quantity - self.reserved_quantity
+        self.in_stock = available_quantity > 0
 
         super().save(*args, **kwargs)
+    
+    @property
+    def available_quantity(self):
+        """Get available quantity (stock - reserved)"""
+        return max(0, self.stock_quantity - self.reserved_quantity)
 
     def __str__(self):
-        if self.jewelry_type:
-            return f"{self.title} ({self.jewelry_type})"
         return self.title
 
 

@@ -13,16 +13,21 @@ User = get_user_model()
 # Basic serializers
 class CategorySerializer(serializers.ModelSerializer):
     subcategories = serializers.SerializerMethodField()
+    product_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'parent', 'description', 'subcategories']
+        fields = ['id', 'name', 'slug', 'parent', 'description', 'subcategories','product_count']
         read_only_fields = ['slug']
     
     def get_subcategories(self, obj):
         if obj.subcategories.exists():
             return CategorySerializer(obj.subcategories.all(), many=True).data
         return []
+
+    def get_product_count(self,obj):
+        return Product.objects.filter(category=obj).exclude(status=3).count()
+
     
     def validate(self, attrs):
         """Validate unique slug before saving"""
@@ -134,29 +139,27 @@ class ProductListSerializer(serializers.ModelSerializer):
     """Serializer for product list views (minimal data)"""
     category_name = serializers.CharField(source='category.name', read_only=True)
     primary_material_name = serializers.CharField(source='primary_material.name', read_only=True)
-    main_image = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
-    
+    gemstones = ProductGemstoneSerializer(source='productgemstone_set', many=True, read_only=True)
+
     class Meta:
         model = Product
         fields = [
             'id', 'title', 'slug', 'category_name', 'primary_material_name',
-            'price', 'jewelry_type', 'weight', 'dimensions', 'is_featured',
-            'in_stock', 'main_image', 'average_rating', 'review_count'
+            'price', 'weight', 'dimensions', 'is_featured','product_code','category','description',
+            'primary_material', 'secondary_materials', 'is_customizable', 'customization_options','image_links','featured_image',
+            'care_instructions', 'status', 'gemstones', 'reviews','stock_quantity',
+            'created_at', 'updated_at',
+            'in_stock', 'average_rating', 'review_count','cost_price','markup_percentage'
         ]
-    
-    def get_main_image(self, obj):
-        main_image = obj.images.filter(is_main=True).first()
-        if main_image:
-            return ProductImageSerializer(main_image).data
-        return None
+
     
     def get_average_rating(self, obj):
         reviews = obj.reviews.filter(status=1)
         if reviews.exists():
             return round(sum(review.rating for review in reviews) / reviews.count(), 1)
-        return 0
+        return 1
     
     def get_review_count(self, obj):
         return obj.reviews.filter(status=1).count()
@@ -164,10 +167,11 @@ class ProductListSerializer(serializers.ModelSerializer):
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    primary_material_name = serializers.CharField(source='primary_material.name', read_only=True)
     primary_material = MaterialSerializer(read_only=True)
     secondary_materials = MaterialSerializer(many=True, read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
-    gemstones = ProductGemstoneSerializer(many=True, read_only=True)
+    gemstones = ProductGemstoneSerializer(source='productgemstone_set', many=True, read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
 
     average_rating = serializers.SerializerMethodField()
@@ -176,16 +180,40 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'title', 'slug', 'category', 'description', 'studio_notes',
-            'price', 'cost_price', 'markup_percentage', 'stock_quantity', 'in_stock',
-            'jewelry_type', 'weight', 'dimensions', 'primary_material',
-            'secondary_materials', 'is_featured', 'is_customizable',
-            'customization_options', 'care_instructions', 'status', 'images',
-            'gemstones', 'reviews', 'average_rating', 'review_count',
-            'created_at', 'updated_at'
+            'id',
+            'title',
+            'slug',
+            'category_name',
+            'primary_material_name', 
+            'price',
+            'weight',
+            'dimensions',
+            'is_featured',
+            'product_code',
+            'category',
+            'description',
+            'primary_material',
+            'secondary_materials',
+            'image_links',
+            'featured_image',
+            'status',
+            'gemstones',
+            'reviews',
+            'stock_quantity',
+            'created_at',
+            'updated_at',
+            'in_stock',
+            'average_rating',
+            'review_count',
+            'cost_price',
+            'markup_percentage'
         ]
-        read_only_fields = fields  # everything read-only for detail
-
+        extra_kwargs = {
+            'slug': {'read_only': True},
+            'product_code': {'read_only': True},
+            'average_rating': {'read_only': True},
+            'review_count': {'read_only': True},
+        }
     def get_average_rating(self, obj):
         reviews = obj.reviews.filter(status=1)
         if reviews.exists():
@@ -200,7 +228,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 class ProductCreateSerializer(serializers.ModelSerializer):
 
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
-    primary_material = serializers.PrimaryKeyRelatedField(queryset=Material.objects.all())
+    primary_material = serializers.PrimaryKeyRelatedField(queryset=Material.objects.all(),required=False,allow_null=True)
     secondary_materials = serializers.PrimaryKeyRelatedField(
         queryset=Material.objects.all(),
         many=True,
@@ -216,10 +244,10 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         # Determine the slug value
         slug_value = attrs.get('slug', '')
         title = attrs.get('title', '')
-        
+        product_code = attrs.get('product_code', '')
         # If slug is not provided, it will be auto-generated from title
-        if not slug_value and title:
-            slug_value = slugify(title)
+        if not slug_value and title and product_code:
+            slug_value = slugify(f"{title}-{product_code}")
         
         # Get the instance if updating (self.instance exists) or None if creating
         instance = self.instance
@@ -352,7 +380,6 @@ class WishlistSerializer(serializers.ModelSerializer):
 class ProductSearchSerializer(serializers.Serializer):
     query = serializers.CharField(required=False, allow_blank=True)
     category = serializers.CharField(required=False, allow_blank=True)
-    jewelry_type = serializers.CharField(required=False, allow_blank=True)
     material = serializers.CharField(required=False, allow_blank=True)
     min_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     max_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)

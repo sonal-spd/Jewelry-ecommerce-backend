@@ -11,6 +11,7 @@ urlpatterns = [
     # Products
     path('products/', views.ProductListView.as_view(), name='product-list'),
     path('products/create/', views.ProductCreateView.as_view(), name='product-create'),
+    path('products/upload/', views.ProductUploadView.as_view(), name='product-upload'),
     path('products/<slug:slug>/', views.ProductDetailView.as_view(), name='product-detail'),
     path('products/<slug:slug>/update/', views.ProductUpdateView.as_view(), name='product-update'),
     path('products/<slug:slug>/delete/', views.ProductDeleteView.as_view(), name='product-delete'),
@@ -21,6 +22,7 @@ urlpatterns = [
     
     # Product Reviews
     path('products/<slug:product_slug>/reviews/', views.ReviewListView.as_view(), name='review-list'),
+    path('reviews/', views.ReviewDetailView.as_view(), name='review-detail'),
     path('reviews/<int:pk>/', views.ReviewDetailView.as_view(), name='review-detail'),
     
     # Materials and Gemstones
@@ -29,6 +31,7 @@ urlpatterns = [
     
     # Shopping Cart
     path('cart/', views.CartView.as_view(), name='cart'),
+    path('cart/<int:pk>/', views.CartView.as_view(), name='cart-update'),
     
     # Wishlist
     path('wishlist/', views.WishlistView.as_view(), name='wishlist'),
@@ -45,4 +48,5 @@ urlpatterns = [
     path('products/<slug:product_slug>/images/reorder/', views.ProductImageReorderView.as_view(), name='product-image-reorder'),
     path('products/<slug:product_slug>/images/<int:image_id>/', views.ProductImageDetailView.as_view(), name='product-image-detail'),
     path('products/<slug:product_slug>/images/<int:image_id>/set-main/', views.ProductImageSetMainView.as_view(), name='product-image-set-main'),
+    path('images/', views.UploadProductImagesAPI.as_view(), name='product-images'),
 ]

@@ -165,28 +165,20 @@ class Appointment(models.Model):
         ('completed', 'Completed'),
     ]
     
-    SUBJECT_CHOICES = [
-        ('general_inquiry', 'General Inquiry'),
-        ('product_consultation', 'Product Consultation'),
-        ('custom_design', 'Custom Design'),
-        ('repair_service', 'Repair Service'),
-        ('other', 'Other'),
-    ]
-    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments', null=True, blank=True)
     
     # Contact Information (for non-authenticated users)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField()
+    first_name = models.CharField(max_length=100,null=True, blank=True)
+    last_name = models.CharField(max_length=100,null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     
     # Appointment Details
-    subject = models.CharField(max_length=50, choices=SUBJECT_CHOICES, default='general_inquiry')
+    subject = models.TextField(null=True, blank=True)
     message = models.TextField(null=True, blank=True)
     
     # Appointment Scheduling
-    appointment_date = models.DateTimeField()
+    appointment_date = models.DateTimeField(null=True, blank=True)
     
     # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -206,3 +198,5 @@ class Appointment(models.Model):
         if self.user:
             user_info = self.user.get_full_name()
         return f"Appointment for {user_info} on {self.appointment_date.strftime('%Y-%m-%d %H:%M')}"
+
+        

@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
+from rest_framework import generics, status, permissions
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
@@ -97,7 +97,8 @@ class EmailVerifyAPIView(APIView):
 
 class UserListAPIView(APIView):
     pagination_class = StandardResultsSetPagination
-    
+    permission_classes = [permissions.IsAdminUser]
+
     def get(self, request, pk=None):
         if pk:
             try:
@@ -124,6 +125,57 @@ class UserListAPIView(APIView):
             serializer = UserListSerializer(users, many=True)
             return Response({"status": 200, "data": serializer.data}, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "User created successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    def put(self, request, pk=None):
+        if not pk:
+            return Response({"detail": "User ID is required for update."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = RegisterSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "User updated successfully", "data": serializer.data},
+                status=status.HTTP_200_OK
+            )
+
+        formatted = format_errors(serializer.errors)
+        errors_list = formatted.get('errors', [])
+        error_message = ', '.join(errors_list) if errors_list else 'Validation error'
+        return Response({'message': error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk=None):
+        if not pk:
+            return Response({"detail": "User ID is required for deletion."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user.status = 3
+        user.save()
+
+        return Response({"message": "User deleted successfully."}, status=status.HTTP_200_OK)
+
+
 
 # User Profile Views
 class UserProfileView(APIView):
@@ -134,6 +186,7 @@ class UserProfileView(APIView):
         return Response(serializer.data)
     
     def put(self, request):
+        
         serializer = CompleteUserProfileSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -304,7 +357,7 @@ class AppointmentListView(APIView):
 
 
 class AppointmentDetailView(APIView):
-    permission_classes = [AllowAny]  # Allow both authenticated and non-authenticated users
+    permission_classes = [permissions.IsAdminUser]  # Allow both authenticated and non-authenticated users
     
     def get(self, request, pk):
         """Retrieve a specific appointment"""
@@ -388,49 +441,6 @@ class AppointmentDetailView(APIView):
             
             appointment.delete()
             return Response({'message': 'Appointment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-        except Appointment.DoesNotExist:
-            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
-class AppointmentStatusUpdateView(APIView):
-    """View for updating appointment status (admin only)"""
-    permission_classes = [IsAuthenticated]
-    
-    def put(self, request, pk):
-        """Update appointment status"""
-        # Check if user is admin/staff
-        if not request.user.is_staff:
-            return Response(
-                {'error': 'You do not have permission to update appointment status'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        try:
-            appointment = Appointment.objects.get(pk=pk)
-            new_status = request.data.get('status')
-            
-            if not new_status:
-                return Response(
-                    {'message': 'Status field is required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Validate status choice
-            valid_statuses = [choice[0] for choice in Appointment.STATUS_CHOICES]
-            if new_status not in valid_statuses:
-                return Response(
-                    {'message': f'Invalid status. Valid choices are: {", ".join(valid_statuses)}'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            appointment.status = new_status
-            notes = request.data.get('notes')
-            if notes:
-                appointment.notes = notes
-            appointment.save()
-            
-            serializer = AppointmentSerializer(appointment, context={'request': request})
-            return Response(serializer.data)
         except Appointment.DoesNotExist:
             return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
 

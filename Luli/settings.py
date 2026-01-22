@@ -32,7 +32,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS").split(",")
 CORS_ORIGIN_ALLOW_ALL =False
 
 
-CORS_ALLOWED_ORIGINS = ['http://localhost','http://localhost:8000','http://localhost:3000','http://127.0.0.1:8000','http://localhost:5173','https://jewelry-ecommerce-backend.onrender.com']
+CORS_ALLOWED_ORIGINS = ['http://localhost','http://localhost:8000','http://localhost:3000','http://127.0.0.1:8000','http://localhost:5173','https://jewelry-ecommerce-backend.onrender.com','https://api.lulibyveronica.com','https://lulibyveronica.com']
 
 CORS_ALLOW_METHODS = [
     "GET",
@@ -134,15 +134,13 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'luli',
         'USER': 'postgres',
-        'PASSWORD': 'postgres',
+        'PASSWORD': config('DB_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '5432',
 
     }
 }
 
-
-DATABASES['default'] = dj_database_url.parse(config('DATABASE_URL'))
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -186,3 +184,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Stripe Configuration
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET')

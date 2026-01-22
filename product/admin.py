@@ -74,11 +74,11 @@ class GemstoneAdmin(admin.ModelAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = [
-        'title', 'jewelry_type', 'category', 'primary_material', 
+        'title', 'category', 'primary_material', 
         'price', 'stock_quantity', 'in_stock', 'is_featured', 'status'
     ]
     list_filter = [
-        'jewelry_type', 'category', 'primary_material', 'is_featured', 
+        'category', 'primary_material', 'is_featured', 
         'in_stock', 'status', 'created_at'
     ]
     search_fields = ['title', 'description', 'studio_notes']
@@ -88,10 +88,10 @@ class ProductAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'slug', 'category', 'description', 'studio_notes')
+            'fields': ('title', 'slug', 'category', 'description', 'studio_notes','product_code','featured_image','image_links')
         }),
         ('Jewelry Details', {
-            'fields': ('jewelry_type', 'weight', 'dimensions', 'primary_material', 'secondary_materials')
+            'fields': ('weight', 'dimensions', 'primary_material', 'secondary_materials')
         }),
         ('Pricing & Inventory', {
             'fields': ('price', 'cost_price', 'markup_percentage', 'stock_quantity', 'in_stock', 'status')
